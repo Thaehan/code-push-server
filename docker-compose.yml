@@ -2,34 +2,41 @@ version: '3.7'
 services:
   server:
     image: shmopen/code-push-server:latest
+    restart: unless-stopped
     volumes:
       - data-storage:/data/storage
       - data-tmp:/data/tmp
     environment:
-      DOWNLOAD_URL: 'http://YOUR_MACHINE_IP:3000/download'
-      TOKEN_SECRET: 'YOUR_JWT_TOKEN_SECRET'
-      RDS_HOST: 'mysql'
-      RDS_USERNAME: 'codepush'
-      RDS_PASSWORD: '123456'
-      RDS_DATABASE: 'codepush'
-      STORAGE_DIR: '/data/storage'
-      DATA_DIR: '/data/tmp'
-      NODE_ENV: 'production'
-      REDIS_HOST: 'redis'
+      DOWNLOAD_URL: ${DOWNLOAD_URL:-http://127.0.0.1:3000/download}
+      TOKEN_SECRET: ${TOKEN_SECRET:-changeme-token-secret}
+      RDS_HOST: ${RDS_HOST:-mysql}
+      RDS_USERNAME: ${RDS_USERNAME:-codepush}
+      RDS_PASSWORD: ${RDS_PASSWORD:-123456}
+      RDS_DATABASE: ${RDS_DATABASE:-codepush}
+      STORAGE_DIR: ${STORAGE_DIR:-/data/storage}
+      DATA_DIR: ${DATA_DIR:-/data/tmp}
+      NODE_ENV: ${NODE_ENV:-production}
+      REDIS_HOST: ${REDIS_HOST:-redis}
     ports:
-      - '3000:3000'
+      - '${PORT:-3000}:3000'
     depends_on:
       - mysql
       - redis
   mysql:
-    image: mysql:latest
+    image: mysql:8.0
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     volumes:
       - data-mysql:/var/lib/mysql
       - ./sql/codepush-all-docker.sql:/docker-entrypoint-initdb.d/codepush-all.sql
     environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: 'On'
+      MYSQL_DATABASE: ${RDS_DATABASE:-codepush}
+      MYSQL_USER: ${RDS_USERNAME:-codepush}
+      MYSQL_PASSWORD: ${RDS_PASSWORD:-123456}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-codepushroot}
   redis:
     image: redis:latest
+    restart: unless-stopped
     volumes:
       - data-redis:/data
 volumes:
